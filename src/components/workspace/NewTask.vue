@@ -11,13 +11,18 @@
         <v-container grid-list-md>
           <v-layout wrap>
             <v-flex xs12>
-              <v-text-field label="Descrição*" required></v-text-field>
+              <v-text-field
+                label="Descrição"
+                required
+                @input="$v.description.$touch()"
+                :error-messages="descriptionErrors"
+                v-model="description"
+              ></v-text-field>
             </v-flex>
-
             <v-flex x12>
               <v-combobox
-                v-model="model"
-                :items="projects"
+                v-model="project"
+                :items="projectsList"
                 :search-input.sync="search"
                 hide-selected
                 hint="Apenas um projeto"
@@ -25,6 +30,9 @@
                 multiple
                 persistent-hint
                 small-chips
+                required
+                @input="$v.project.$touch()"
+                :error-messages="projectErrors"
               >
                 <template slot="no-data">
                   <v-list-tile>
@@ -41,12 +49,11 @@
             </v-flex>
           </v-layout>
         </v-container>
-        <small>*indicates required field</small>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="blue darken-1" flat @click="dialog = false">Close</v-btn>
-        <v-btn color="blue darken-1" flat @click="dialog = false">Save</v-btn>
+        <v-btn color="blue darken-1" flat @click="dialog = false">Fechar</v-btn>
+        <v-btn color="blue darken-1" flat @click="saveTask">Iniciar Tarefa</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -54,27 +61,77 @@
 
 <script>
 import axios from "axios";
+import { required, maxLength } from "vuelidate/lib/validators";
 
 export default {
   data() {
     return {
+      description: null,
       dialog: false,
-      projects: [],
-      model: [],
+      projectsList: [],
+      project: [],
       search: null
     };
   },
+  validations: {
+    description: {
+      required,
+      maxLength: maxLength(50)
+    },
+    project: {
+      required
+    }
+  },
+  computed: {
+    descriptionErrors() {
+      const errors = [];
+      if (!this.$v.description.$dirty) return errors;
+      !this.$v.description.maxLength &&
+        errors.push("Descrição deve ter no máximo 50 caracteres.");
+      !this.$v.description.required && errors.push("Descrição é obrigatório.");
+      return errors;
+    },
+    projectErrors() {
+      const errors = [];
+      if (!this.$v.project.$dirty) return errors;
+      !this.$v.project.required && errors.push("Projeto é obrigatório.");
+      return errors;
+    }
+  },
   watch: {
-    model(val) {
-      console.log("MODEL:", val);
+    project(val) {
       if (val.length > 1) {
-        this.$nextTick(() => this.model.pop());
+        this.$nextTick(() => this.project.pop());
       }
+    }
+  },
+  methods: {
+    saveTask() {
+      // Vuelidate
+      this.$v.$touch();
+      // POST Method, save the new task
+      axios
+        .post("workspace/add-task", {
+          description: this.description,
+          project: this.project[0]
+        })
+        .then( res => {
+          if(res.status !== 200) {
+            throw new Error("Falha ao obter Projetos.");
+          }
+          console.log(res.message);
+          // close dialog
+          this.dialog = false;
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      
     }
   },
   mounted() {
     axios
-      .get("http://localhost:3000/workspace/5c58e119d5e2b359800929a1/projects")
+      .get("/workspace/5c58e119d5e2b359800929a1/projects")
       .then(res => {
         if (res.status !== 200) {
           throw new Error("Falha ao obter Projetos.");
@@ -83,7 +140,7 @@ export default {
       })
       .then(resData => {
         console.log("RESPOSTA", resData);
-        this.projects = resData.map( function(project) {
+        this.projectsList = resData.map(function(project) {
           return project.name;
         });
       })

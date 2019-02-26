@@ -16,7 +16,7 @@ export const store = new Vuex.Store({
     },
     mutations: {
         'LOAD_TASKS'(state) {
-            axios.get('http://localhost:3000/workspace/5c58e119d5e2b359800929a1/tasks')
+            axios.get('/workspace/5c58e119d5e2b359800929a1/tasks')
                 .then(res => {
                     if (res.status !== 200) {
                         throw new Error('Falha ao obter tarefas.')
