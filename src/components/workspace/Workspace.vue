@@ -1,7 +1,7 @@
 <template>
   <v-container grid-list-md text-xs-center>
     <!-- Running Task -->
-    <v-layout row v-if="taskRunning">
+    <v-layout row v-if="this.isRunning">
       <v-flex xs12>
         <v-list>
           <v-list-tile>
@@ -17,7 +17,7 @@
             <v-list-tile-action>
               <v-list-tile-action-text>{{ runningTimer | secondsToTime }}</v-list-tile-action-text>
               <v-btn icon ripple>
-                <v-icon color="grey lighten-1">pause</v-icon>
+                <v-icon color="grey lighten-1" @click="stopTask">stop</v-icon>
               </v-btn>
             </v-list-tile-action>
           </v-list-tile>
@@ -65,15 +65,10 @@ export default {
   },
   filters: {
     secondsToTime: function(value) {
-      let hours = parseInt(Math.floor(value / 360));
-      let minutes = parseInt(Math.floor((value - hours * 360) / 60));
-      let seconds = parseInt((value - (hours * 360 + minutes * 60)) % 60);
-
-      let dHours = hours > 9 ? hours : "0" + hours;
-      let dMins = minutes > 9 ? minutes : "0" + minutes;
-      let dSecs = seconds > 9 ? seconds : "0" + seconds;
-
-      return dHours + ":" + dMins + ":" + dSecs;
+      let date = new Date(null);
+      date.setSeconds(value); // specify value for SECONDS here
+      const result = date.toISOString().substr(11, 8);
+      return result;
     }
   },
   components: {
@@ -83,12 +78,27 @@ export default {
   methods: {
     ...mapActions(["loadTasks"]),
     runTask() {
-      setInterval( () => {
+      setInterval(() => {
         //console.log(this.isRunning);
         if (this.isRunning) {
           this.timer++;
         }
       }, 1000);
+    },
+    stopTask() {
+      console.log(this.taskRunning._id);
+      // stop
+      axios
+        .patch("/workspace/" + this.taskRunning._id + "/stop")
+        .then(res => {
+          if (res.status !== 200) {
+            throw new Error("Falha ao pausar tarefa.");
+          }
+          this.isRunning = false;
+        })
+        .catch(err => {
+          console.log(err);
+        });
     }
   },
   mounted() {
@@ -99,8 +109,8 @@ export default {
         if (task.status !== 200) {
           throw new Error("Falha ao obter tarefa em execução.");
         }
-        this.taskRunning = task.data;
-        this.timer = task.data.timer;
+        this.taskRunning = task.data.task;
+        this.timer = task.data.task.timer;
         this.isRunning = true;
         this.runTask();
       })

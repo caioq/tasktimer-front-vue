@@ -27,3 +27,7 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+### tasks to be done
+- Carregar tasks finalizadas on mount e deixar de usar vuex para armazenar elas (?)
+- Usar vuex para armazenar a tarefa em andamento
