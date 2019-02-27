@@ -61,6 +61,7 @@
 
 <script>
 import axios from "axios";
+import { mapGetters } from 'vuex';
 import { required, maxLength } from "vuelidate/lib/validators";
 
 export default {
@@ -83,6 +84,7 @@ export default {
     }
   },
   computed: {
+    ...mapGetters(['taskRunning']),
     descriptionErrors() {
       const errors = [];
       if (!this.$v.description.$dirty) return errors;
@@ -109,6 +111,11 @@ export default {
     saveTask() {
       // Vuelidate
       this.$v.$touch();
+
+      // check if already has running task
+      if (this.taskRunning) {
+        throw new Error("Já possui tarefa em andamento.");
+      }
       // POST Method, save the new task
       axios
         .post("workspace/add-task", {
@@ -118,8 +125,9 @@ export default {
         .then( res => {
           if(res.status !== 200) {
             throw new Error("Falha ao obter Projetos.");
-          }
-          console.log(res.message);
+          }          
+          console.log("NEW TASK:", res);
+          this.$store.commit('newRunningTask', res.data.result);
           // close dialog
           this.dialog = false;
         })
@@ -139,7 +147,7 @@ export default {
         return res.data;
       })
       .then(resData => {
-        console.log("RESPOSTA", resData);
+        console.log("PROJECTS: ", resData);
         this.projectsList = resData.map(function(project) {
           return project.name;
         });

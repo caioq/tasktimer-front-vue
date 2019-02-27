@@ -1,7 +1,7 @@
 <template>
   <v-container grid-list-md text-xs-center>
     <!-- Running Task -->
-    <v-layout row v-if="this.isRunning">
+    <v-layout row v-if="runningTask">
       <v-flex xs12>
         <v-list>
           <v-list-tile>
@@ -15,7 +15,7 @@
             </v-list-tile-content>
 
             <v-list-tile-action>
-              <v-list-tile-action-text>{{ runningTimer | secondsToTime }}</v-list-tile-action-text>
+              <v-list-tile-action-text>{{ runningTask.timer | secondsToTime }}</v-list-tile-action-text>
               <v-btn icon ripple>
                 <v-icon color="grey lighten-1" @click="stopTask">stop</v-icon>
               </v-btn>
@@ -47,24 +47,22 @@ import axios from "axios";
 export default {
   data() {
     return {
-      taskRunning: null,
-      timer: null,
-      isRunning: false
+      tasks: []
     };
   },
   computed: {
-    tasks() {
-      return this.$store.getters.tasksDone;
+    finishedTasks() {
+      return this.tasks;
     },
     runningTask() {
-      return this.taskRunning;
-    },
-    runningTimer() {
-      return this.timer;
+      return this.$store.getters.taskRunning;
     }
   },
   filters: {
     secondsToTime: function(value) {
+      if(!value){
+        value = 1;
+      }
       let date = new Date(null);
       date.setSeconds(value); // specify value for SECONDS here
       const result = date.toISOString().substr(11, 8);
@@ -76,25 +74,18 @@ export default {
     appNewTask: NewTask
   },
   methods: {
-    ...mapActions(["loadTasks"]),
-    runTask() {
-      setInterval(() => {
-        //console.log(this.isRunning);
-        if (this.isRunning) {
-          this.timer++;
-        }
-      }, 1000);
-    },
+    ...mapActions(["loadRunningTask"]),
     stopTask() {
-      console.log(this.taskRunning._id);
+      //console.log(this.runningTask._id);
       // stop
       axios
-        .patch("/workspace/" + this.taskRunning._id + "/stop")
+        .patch("/workspace/" + this.runningTask._id + "/stop")
         .then(res => {
           if (res.status !== 200) {
             throw new Error("Falha ao pausar tarefa.");
           }
-          this.isRunning = false;
+          //this.$store.getters.taskRunning = null;
+          this.$store.commit('stopTask');
         })
         .catch(err => {
           console.log(err);
@@ -103,22 +94,23 @@ export default {
   },
   mounted() {
     // Load running task
-    axios
-      .get("/workspace/5c58e119d5e2b359800929a1/running-task")
-      .then(task => {
-        if (task.status !== 200) {
-          throw new Error("Falha ao obter tarefa em execução.");
-        }
-        this.taskRunning = task.data.task;
-        this.timer = task.data.task.timer;
-        this.isRunning = true;
-        this.runTask();
+    this.loadRunningTask();
+    
+    // Load finished tasks
+    axios.get('/workspace/5c58e119d5e2b359800929a1/finished-tasks')
+      .then(res => {
+          if (res.status !== 200) {
+              throw new Error('Falha ao obter tarefas.')
+          }
+          return res.data;
+      })
+      .then(resData => {
+          //console.log("FINISHED TASKS: ", resData);
+          this.tasks = resData;
       })
       .catch(err => {
-        console.log(err);
+          console.log(err);
       });
-    // Load Tasks of User
-    this.loadTasks();
   }
 };
 </script>
