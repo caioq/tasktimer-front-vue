@@ -53,7 +53,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="blue darken-1" flat @click="dialog = false">Fechar</v-btn>
+        <v-btn color="blue darken-1" flat @click="closeDialog">Fechar</v-btn>
         <v-btn color="blue darken-1" flat @click="saveTask">Iniciar Tarefa</v-btn>
       </v-card-actions>
     </v-card>
@@ -62,7 +62,7 @@
 
 <script>
 import axios from "axios";
-import { mapGetters } from 'vuex';
+import { mapGetters } from "vuex";
 import { required, maxLength } from "vuelidate/lib/validators";
 
 export default {
@@ -85,7 +85,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['taskRunning']),
+    ...mapGetters(["taskRunning"]),
     descriptionErrors() {
       const errors = [];
       if (!this.$v.description.$dirty) return errors;
@@ -123,22 +123,28 @@ export default {
           description: this.description,
           project: this.project[0]
         })
-        .then( res => {
-          if(res.status !== 200) {
+        .then(res => {
+          if (res.status !== 200) {
             throw new Error("Falha ao obter Projetos.");
-          }          
-          console.log("NEW TASK:", res);
+          }
+          //console.log("NEW TASK:", res);
           let newRunningTask = res.data.result;
           // set timer value
           newRunningTask.timer = 0;
-          this.$store.commit('newRunningTask', newRunningTask);
+          this.$store.commit("newRunningTask", newRunningTask);
           // close dialog
-          this.dialog = false;
+          this.closeDialog();
         })
         .catch(err => {
           console.log(err);
         });
-      
+    },
+    closeDialog() {
+      // reset form
+      this.description = null;
+      this.project = [];
+      // close dialog
+      this.dialog = false;
     }
   },
   mounted() {
