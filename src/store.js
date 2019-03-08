@@ -8,7 +8,8 @@ export const store = new Vuex.Store({
     state: {
         tasks: [],
         task: null,
-        user: null
+        user: null,
+        timerIntervalFuntion: null
     },
     getters: {
         tasksDone: (state) => {
@@ -46,14 +47,13 @@ export const store = new Vuex.Store({
                 .then(resData => {
                     //console.log("RESPOSTA",resData);
                     state.task = resData.task;
-                    const timerInterval = setInterval(() => {
+                    state.timerIntervalFuntion = setInterval(() => {
                         if (state.task) {
                             state.task.timer++;
                         } else {
-                            clearInterval(timerInterval);
+                            clearInterval(state.timerIntervalFuntion);
                         }
-                    }, 1000);
-                    //return state.task;
+                    }, 1000);                    
                 })
                 .catch(err => {
                     console.log(err);
@@ -64,6 +64,13 @@ export const store = new Vuex.Store({
         },
         newRunningTask(state, payload) {
             state.task = payload;
+            state.timerIntervalFuntion = setInterval(() => {
+                if (state.task) {
+                    state.task.timer++;
+                } else {
+                    clearInterval(state.timerIntervalFuntion);
+                }
+            }, 1000); 
         }
     },
     actions: {

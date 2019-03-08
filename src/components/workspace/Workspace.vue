@@ -27,9 +27,12 @@
     <v-layout row wrap>
       <!-- List of tasks -->
       <v-flex lg7 md6 xs12>
-        <app-task v-for="task in tasks" :key="task._id" :task="task"></app-task>
+        <div v-for="tasksGroup in tasks" :key="tasksGroup._id.date">
+          <v-subheader>{{ tasksGroup._id.date }}</v-subheader>
+          <app-task v-for="task in tasksGroup.finishedTasks" :key="task._id" :task="task"></app-task>
+        </div>
       </v-flex>
-      <!-- Last tasks -->
+      <!-- Last activities -->
       <v-flex lg5 md6 xs12>
         <v-card white>Trabalhando nisso?</v-card>
       </v-flex>
@@ -60,7 +63,7 @@ export default {
   },
   filters: {
     secondsToTime: function(value) {
-      if(!value){
+      if (value < 1) {
         value = 1;
       }
       let date = new Date(null);
@@ -75,41 +78,49 @@ export default {
   },
   methods: {
     ...mapActions(["loadRunningTask"]),
-    stopTask() {
+    async stopTask() {
       //console.log(this.runningTask._id);
-      // stop
-      axios
-        .patch("/workspace/" + this.runningTask._id + "/stop")
-        .then(res => {
-          if (res.status !== 200) {
-            throw new Error("Falha ao pausar tarefa.");
-          }
-          //this.$store.getters.taskRunning = null;
-          this.$store.commit('stopTask');
-        })
-        .catch(err => {
-          console.log(err);
-        });
+      try {
+        // stop
+        const result = await axios.patch(
+          "/workspace/" + this.runningTask._id + "/stop"
+        );
+        if (result.status !== 200) {
+          throw new Error("Falha ao pausar tarefa.");
+        }
+        this.$store.commit("stopTask");
+
+        // load finished tasks
+        const finishedTasks = await axios.get("/workspace/5c58e119d5e2b359800929a1/finished-tasks");
+        if (finishedTasks.status !== 200) {
+          throw new Error("Falha ao obter tarefas.");
+        }
+        this.tasks = finishedTasks.data;
+
+      } catch (err) {
+        console.log(err);
+      }
     }
   },
   mounted() {
     // Load running task
     this.loadRunningTask();
-    
+
     // Load finished tasks
-    axios.get('/workspace/5c58e119d5e2b359800929a1/finished-tasks')
+    axios
+      .get("/workspace/5c58e119d5e2b359800929a1/finished-tasks")
       .then(res => {
-          if (res.status !== 200) {
-              throw new Error('Falha ao obter tarefas.')
-          }
-          return res.data;
+        if (res.status !== 200) {
+          throw new Error("Falha ao obter tarefas.");
+        }
+        return res.data;
       })
       .then(resData => {
-          //console.log("FINISHED TASKS: ", resData);
-          this.tasks = resData;
+        console.log("FINISHED TASKS: ", resData);
+        this.tasks = resData;
       })
       .catch(err => {
-          console.log(err);
+        console.log(err);
       });
   }
 };

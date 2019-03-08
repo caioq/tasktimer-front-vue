@@ -1,8 +1,9 @@
 <template>
   <v-dialog v-model="dialog" persistent max-width="600px">
-    <v-btn slot="activator" color="red" absolute fab top right dark>
+    <v-btn v-show="!taskRunning" slot="activator" color="red" absolute fab top right dark>
       <v-icon>add</v-icon>
     </v-btn>
+    <!-- New Task Dialog -->
     <v-card>
       <v-card-title>
         <span class="headline">Nova Tarefa</span>
@@ -127,7 +128,10 @@ export default {
             throw new Error("Falha ao obter Projetos.");
           }          
           console.log("NEW TASK:", res);
-          this.$store.commit('newRunningTask', res.data.result);
+          let newRunningTask = res.data.result;
+          // set timer value
+          newRunningTask.timer = 0;
+          this.$store.commit('newRunningTask', newRunningTask);
           // close dialog
           this.dialog = false;
         })
@@ -147,7 +151,7 @@ export default {
         return res.data;
       })
       .then(resData => {
-        console.log("PROJECTS: ", resData);
+        //console.log("PROJECTS: ", resData);
         this.projectsList = resData.map(function(project) {
           return project.name;
         });
